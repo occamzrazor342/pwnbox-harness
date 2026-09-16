@@ -27,6 +27,7 @@ best-practices list.
 | `bounty-report-agent` | Draft a submittable vulnerability report from a confirmed finding |
 | `sherlock-agent` | A DFIR/forensics-challenge workflow (reference implementation: HTB Sherlocks) — no shell/root involved, just evidence and a task list |
 | `goal-relay-agent` | Turn a finished goal's notes into a mobile-readable hosted report |
+| `verify-agent` | Independently check a high-consequence claim (a root/escalation claim, a bounty finding, a resolved signal) before it's treated as ground truth — shares no context with whoever produced the claim, and its job is to try to refute it, not confirm it |
 
 **Skills** (`skills/*/SKILL.md`, the orchestration layer):
 
@@ -38,15 +39,22 @@ best-practices list.
 - **`infinite-worker`** — an open-ended, pausable rolling queue instead of a fixed list.
 - **`synthesize-state`** — the mechanism that keeps a multi-pass engagement honest: an
   Assumption Register that separates evidence-backed fact from inherited conclusion
-  (UNVALIDATED → VALIDATED/INVALIDATED, live and re-checked), invoked mandatorily before
-  ever re-dispatching a blocked stage. See `docs/Agent-Operating-Principles.md` #9 for
-  the incident this was built to stop from happening again.
+  (UNVALIDATED → VALIDATED/INVALIDATED, live and re-checked, schema-validated via the
+  bundled `scripts/validate_assumption_register.py`), invoked mandatorily before ever
+  re-dispatching a blocked stage. See `docs/Agent-Operating-Principles.md` #9 for the
+  incident this was built to stop from happening again.
+
+**Scripts** (`scripts/*.py`, stdlib-only):
+
+- **`validate_assumption_register.py`** — schema-checks a `synthesize-state` Assumption
+  Register JSON sidecar (fixed status enum, required evidence citations for
+  VALIDATED/INVALIDATED rows) before it's trusted as the basis for a re-dispatch.
 
 **Docs:**
 
 - `HARNESS.md` — the path/scope contract every agent reads. Read this first if you're
   adopting the harness for your own project.
-- `docs/Agent-Operating-Principles.md` — 16 numbered principles on verification habits,
+- `docs/Agent-Operating-Principles.md` — 17 numbered principles on verification habits,
   safety-boundary discipline, cost control, and multi-pass-engagement failure modes,
   each one tied to a real dated incident.
 
@@ -77,10 +85,11 @@ two as the pattern to follow, not a dependency the rest of the harness needs.
 - **Non-HTB bug bounty report formats.** `bounty-report-agent` currently formats for
   HackerOne specifically (documented in the file itself as the platform this started
   with).
-- **A cost-control/verification checkpoint before hunting spends its budget**, and
-  **adversarial verification of high-consequence claims by a fresh, evidence-only
-  subagent** — two ideas worth adding, not yet built. If you're looking for a first
-  contribution, these are good ones.
+- **A cost-control/verification checkpoint before hunting spends its budget** — deliberately
+  not built. This pipeline's retry loop is uncapped by design (see `pwn-box`'s "Handling a
+  Blocked Stage"); a fixed-budget-reservation model like a large fleet-wide scanner would
+  use doesn't fit an engagement this pipeline is built to keep working at until it lands,
+  not to cut off partway through.
 
 ## License
 

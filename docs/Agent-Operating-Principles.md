@@ -354,6 +354,42 @@ evidence. This applies with extra weight to anything security-shaped, since a fa
 credential or "declined" event is exactly the kind of claim that's costly to build on
 unverified and cheap to check.
 
+## 17. A "confirmed" claim from one pass is a claim, not a verified fact, until something independent tries to break it
+
+Different failure mode from #16. #16 is about a subagent inventing evidence that never
+existed. This one is about a claim that's *genuinely, honestly* drawn from real
+evidence — no fabrication involved — that's still wrong because the evidence was
+misread, incompletely tested, or looked stronger out of context than it actually is.
+Nothing about a plausible, confidently-stated success claim distinguishes it from one
+that's subtly wrong, which is exactly why one pass's own confidence in its conclusion
+isn't a substitute for someone else checking it.
+
+The pipeline already had a partial version of this discipline: `synthesize-state`
+forces a re-check of *blocked/dead-end* conclusions against raw evidence before
+inheriting them as fact. What it didn't cover is the mirror case — a *success* claim
+(root achieved, a vulnerability confirmed, a signal marked resolved) sailing straight
+through to whatever deliverable treats it as ground truth, with nobody's job being to
+try to disprove it. A false positive here is at least as costly as a false negative:
+a writeup built on an unverified root claim, or a bug bounty report drafted from an
+unverified finding, both cost real credibility to walk back after the fact.
+
+**The fix:** for a claim a downstream deliverable will treat as settled fact — a final
+root/escalation claim before a writeup gets drafted from it, a bug bounty finding before
+a report gets drafted from it, an Unresolved Signal before it's marked resolved for
+good — dispatch a fresh, context-isolated agent (`verify-agent`) whose only input is the
+claim and a pointer to its evidence, with an explicit mandate to refute it, not confirm
+it. This is deliberately not applied to every intermediate claim in an engagement — the
+cost would roughly double the dispatch count for little marginal value on claims nothing
+downstream is actually relying on yet. It's reserved for the specific moments where being
+wrong is expensive to discover later: the point where a claim stops being a working
+hypothesis and starts being treated as a fact other work gets built on.
+
+This applies the same way regardless of what kind of engagement produced the claim — an
+HTB machine's root flag, a live client engagement's escalation, or a bug bounty
+program's proof of concept are all, structurally, the same situation: a claim that's
+about to become the input to an artifact (a writeup, a report) that other people will
+read and trust.
+
 ---
 
 None of this is specific to hacking HTB boxes. It's the same discipline

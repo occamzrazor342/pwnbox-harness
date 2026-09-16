@@ -86,6 +86,12 @@ recall:
    `docs/Agent-Operating-Principles.md` #10 for the full reasoning and
    worked example). Re-rank on each pass; a newly validated/invalidated
    assumption can change what's highest-value.
+6. **Before marking a high-consequence signal RESOLVED, not just VALIDATED,
+   consider dispatching `verify-agent` on it first** — same standard as
+   `pwn-box`'s privesc-claim checkpoint (`docs/Agent-Operating-Principles.md`
+   #17). "Resolved" means nothing downstream ever re-opens this row; that's
+   exactly the kind of claim worth one independent, evidence-only check
+   before it's closed for good, not every minor row on the table.
 
 ## Output
 
@@ -122,6 +128,39 @@ evidence arrives) rather than pasting a second register below the first.
 Keep the block tight — it's a decision aid the next agent reads first, not a
 retelling of the notes. Do not delete the detailed pass reports below it;
 this sits on top of them.
+
+### Schema: also write a JSON sidecar, and validate it
+
+The markdown table above is for a human/agent skimming the notes. Alongside it, write
+(or update in place — same live-state rule) a structured sidecar at
+`<NOTES_ROOT>/Machines/<target>-assumption-register.json` (or the matching path for the
+category you're working in), one row per Assumption Register entry:
+
+```json
+[
+  {
+    "id": "A1",
+    "assumption": "the injection is a dead end",
+    "status": "UNVALIDATED",
+    "evidence_ref": "",
+    "basis": "only 2 of 3 candidate write paths were actually tested; third path untested"
+  }
+]
+```
+
+Fields: `id` (stable across passes, e.g. `A1`, `A2a` for a split row), `assumption`,
+`status` (exactly one of `UNVALIDATED`/`VALIDATED`/`INVALIDATED`), `evidence_ref` (a
+file path, optionally with a line/section, e.g. `target-raw.md:142-150` — **required
+non-empty for VALIDATED/INVALIDATED, must be empty for UNVALIDATED** — a validated
+claim with nothing to point at isn't actually validated, and an unvalidated one citing
+"evidence" is a contradiction), `basis` (always required — the reasoning, or what's
+missing).
+
+Before treating the register as complete, run the bundled validator against the
+sidecar: `python3 scripts/validate_assumption_register.py <path-to-sidecar.json>`
+(relative to wherever this harness is checked out). If it reports issues, fix the
+JSON — a register that fails its own schema check is exactly the kind of thing this
+skill exists to catch, so don't ship one uncorrected.
 
 ## Handing off
 

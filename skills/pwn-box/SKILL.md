@@ -70,6 +70,24 @@ finish before starting the next:
    `<NOTES_ROOT>/Machines/<target>-privesc.md`. Same handling: a "vectors
    exhausted" report is a soft block, not an automatic hard stop — apply
    the retry loop below.
+4a. **If privesc-agent reports success, dispatch `verify-agent` on the root/flag
+    claim before treating it as final.** Give it only the claim (e.g. "root achieved
+    via `<technique>`, flag `<value>`") and a pointer to the specific section of
+    `<target>-privesc.md` that documents it — not the rest of the notes, not this
+    pipeline's own confidence in the result. A writeup gets drafted from this claim
+    next; that's exactly the kind of downstream-treated-as-ground-truth moment
+    `verify-agent` exists for (see `docs/Agent-Operating-Principles.md` #17). Handle
+    the verdict:
+    - **CONFIRMED** — proceed to step 5 normally.
+    - **REFUTED** — treat this the same as a soft block (see below): the claimed
+      escalation didn't actually happen. Run the synthesis checkpoint and re-dispatch
+      `privesc-agent` with `verify-agent`'s specific refutation, not a generic
+      "try again."
+    - **INCONCLUSIVE** — the claim isn't currently checkable from the notes. Don't
+      proceed to writeup-agent on an unverifiable claim; either the evidence needs to
+      be re-collected (a raw command+output block that was summarized instead of
+      quoted) or `privesc-agent` needs to re-establish and re-document the access
+      itself. Treat it as a soft block.
 5. **Dispatch `writeup-agent`** with the same target. Wait for
    `<WRITEUPS_ROOT>/Machines/<target>.md` (and any new `<TOOLING_ROOT>/` notes).
 6. **Dispatch `goal-relay-agent`** with the target, regardless of whether
@@ -104,7 +122,8 @@ working the loop, not a self-imposed pass count).
   accepting narration at face value before treating them as hard stops).
 
 **Soft blocks — `exploit-agent` or `privesc-agent` reports no viable
-vector from the current recon:** apply this loop instead of stopping:
+vector from the current recon, or `verify-agent` returns REFUTED/INCONCLUSIVE
+on a privesc claim (step 4a):** apply this loop instead of stopping:
 
 1. Read the blocked stage's own report for its concrete recommendations
    (specific unresolved hosts/services/attributes/gaps — every
